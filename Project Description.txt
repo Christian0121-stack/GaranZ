@@ -1,0 +1,16 @@
+Project Name: Garanzi
+
+Description:
+
+📌 Executive Summary
+Garanzi is a next-generation decentralized escrow and payment infrastructure engineered specifically for the global freelancing economy, built on the Stellar Network using Soroban Smart Contracts. Our platform eliminates financial insecurity, high intermediary fees, and the widespread industry problem of client "ghosting."
+
+⚡ Key Innovation & Core Features
+Automated Cryptographic Trust Engine: When a freelancer submits deliverables, a strict 48-hour review window is initiated. If the client becomes completely unresponsive, the Soroban smart contract automatically triggers an Auto Disperse state after the countdown, securely routing the locked funds directly to the freelancer's wallet.
+
+Flexible Milestone Architecture: Supports both One-Time Payments for short-term tasks and Progressive Milestone Payments for long-term project phases.
+
+Dynamic Web3 Pay Links: Introduces instant Escrow Links for formalized, secure contract agreements, and Bonus Links for seamless, instant tips and performance rewards.
+
+🛠️ Stellar Ecosystem Integration
+Garanzi leverages the speed, predictable fee structure, and efficiency of the Stellar Network and Soroban Smart Contracts to deliver a complete, high-speed, and low-cost Web3 workspace ecosystem that outperforms traditional Web2 freelancing platforms.

@@ -1,0 +1,56 @@
+# Garanzi - Technical Documentation & Architecture
+
+This document provides a comprehensive technical overview of Garanzi's architecture, deployment details, and guide on how to run the project locally.
+
+---
+
+## 🔒 Smart Contract Deployment Details
+
+Garanzi utilizes custom-built Soroban smart contracts written in Rust to manage secure resource allocations, escrow lockups, and automatic multi-wallet release parameters.
+
+### 🌐 Network Environment: `Stellar Mainnet` / `Testnet`
+
+| Contract Name               | Contract ID / Address                  | Explorer Link                                   |
+| :---                        | :---               | :---              |
+| **Garanzi Escrow Hub**      | `PASTE_YOUR_ESCROW_CONTRACT_ID_HERE`   | [View on StellarExpert](https://stellar.expert) |
+| **Garanzi PayLink Handler** | `PASTE_YOUR_PAYLINK_CONTRACT_ID_HERE`  | [View on StellarExpert](https://stellar.expert) |
+ 
+### 💳 Authorized Deployer Wallet
+* **Public Stellar Address:** `PASTE_YOUR_PUBLIC_STELLAR_WALLET_ADDRESS_HERE`
+* *Note: This wallet address holds the signature profile responsible for smart contract execution, resource fee allocation simulations, and initial state initialization.*
+
+---
+
+## ⏳ Business Logic & State Machine
+
+### One-Time Payment State Transitions
+1. **`In Progress`**: The client deploys the contract and deposits funds into the escrow pool. Freelancers begin work.
+2. **`Under Review`**: Freelancers submit project deliverables, pausing the main deadline and initiating the **48-Hour Auto-Disperse Countdown**.
+3. **`Completed - Released`**: The client manually reviews and approves the submission, releasing funds immediately.
+4. **`Auto Disperse`**: If the 48-hour window expires without client feedback or dispute initiation, a backend cron/smart-contract trigger dynamically updates the contract status to `Auto Disperse` and processes cryptographic multi-wallet asset routing.
+
+---
+
+## 📦 Local Installation & Setup
+
+Follow these steps to set up and run Garanzi on your local environment:
+
+### Prerequisites
+* A modern web browser with a Stellar-compatible wallet extension (e.g., Freighter Wallet).
+* A local development server or Node.js environment.
+
+# Clone the repository
+git clone https://github.com/YOUR_GITHUB_USERNAME/Garanzi.git
+# Move into the project directory
+cd Garanzi
+# Start the local server
+npx serve .
+
+________________________________
+Garanzi Escrow Hub
+
+Ano ang ipapaste mo? Ang Contract ID ng iyong Escrow Contract (yung may lock, 48-hour countdown, at auto-disperse logic).
+
+Garanzi PayLink Handler
+
+Ano ang ipapaste mo? Ang Contract ID ng iyong Payment Contract (yung ginagamit para sa mga instant bonus, tips, o instant release link).
