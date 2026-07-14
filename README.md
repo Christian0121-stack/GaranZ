@@ -15,7 +15,7 @@ Whether it is a quick solo task, a shared team milestone, or an instant performa
 
 ## 🚀 Presentation & Demo
 
-🎥 **[Watch the Demo Video] **(https://canva.link/6zmxvx1idhsllgi)**  
+🎥 **[Watch the Demo Video]**(https://canva.link/6zmxvx1idhsllgi)**  
 🎥 **[Watch the Walkthrough Video] **(https://canva.link/kt3fbn7ke1yopns)**  
 **🌐 Live Web App (Website Version):**(https://garanz.vercel.app/)**
 *Presented by: Christian Joshua P. Mendigoria & Marielle*
