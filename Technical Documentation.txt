@@ -8,15 +8,13 @@ This document provides a comprehensive technical overview of Garanzi's architect
 
 Garanzi utilizes custom-built Soroban smart contracts written in Rust to manage secure resource allocations, escrow lockups, and automatic multi-wallet release parameters.
 
-### 🌐 Network Environment: `Stellar Mainnet` / `Testnet`
+## 📜 Soroban Smart Contract Details
 
-| Contract Name               | Contract ID / Address                  | Explorer Link                                   |
-| :---                        | :---               | :---              |
-| **Garanzi Escrow Hub**      | `PASTE_YOUR_ESCROW_CONTRACT_ID_HERE`   | [View on StellarExpert](https://stellar.expert) |
-| **Garanzi PayLink Handler** | `PASTE_YOUR_PAYLINK_CONTRACT_ID_HERE`  | [View on StellarExpert](https://stellar.expert) |
+*   **Network:** Stellar Mainnet
+*   **Deployed Contract Address:** `[CB2FVWIMWHIYI73PS4CFTYSPNBQNJBZUOCFLKRWSCKMLFNQ4I2OAFVFH`
  
 ### 💳 Authorized Deployer Wallet
-* **Public Stellar Address:** `PASTE_YOUR_PUBLIC_STELLAR_WALLET_ADDRESS_HERE`
+* **Public Stellar Address:** `GA6AMZ3TA5ICTV2DQ55M2OZHHZLCEBYNV2DXDNVI3N6IM4RRC4XQRWJN `
 * *Note: This wallet address holds the signature profile responsible for smart contract execution, resource fee allocation simulations, and initial state initialization.*
 
 ---
