@@ -1,0 +1,31 @@
+[package]
+name = "escrow-contract"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = "=22.0.0"
+
+[dev-dependencies]
+soroban-sdk = { version = "=22.0.0", features = ["testutils"] }
+# Pin transitively to avoid an upstream soroban-env-host dependency range
+# (`ed25519-dalek = ">=2.0.0"`, unbounded) resolving to a too-new major
+# version (3.x) that is incompatible with soroban-sdk's own pinned 2.x line,
+# which otherwise breaks the `testutils` build with a rand_core version
+# mismatch. See contracts/escrow-contract/NOTES.md.
+ed25519-dalek = "=2.1.1"
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
