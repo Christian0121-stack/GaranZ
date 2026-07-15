@@ -60,3 +60,11 @@ System Workflow:
 Safeguards:
 1) Auto-Release: If the countdown ends, funds are auto-released after 48 hours.
 2) Dispute System: Allows freelancers to request deadline extensions or additional payments if disagreements occur.
+
+> [!IMPORTANT]
+> These are **test accounts only**. Do not use real personal data or sensitive information when performing these tests.
+
+| Role | Username | Password |
+| :--- | :--- | :--- |
+| **Client** | cath123 | cath123 |
+| **Freelancer** | marielle123 | marielle123 |
