@@ -45,10 +45,18 @@ cd Garanzi
 npx serve .
 
 ________________________________
-Garanzi Escrow Hub
-
-Ano ang ipapaste mo? Ang Contract ID ng iyong Escrow Contract (yung may lock, 48-hour countdown, at auto-disperse logic).
-
-Garanzi PayLink Handler
-
-Ano ang ipapaste mo? Ang Contract ID ng iyong Payment Contract (yung ginagamit para sa mga instant bonus, tips, o instant release link).
+GaranZ System Overview
+Core Modules:
+Home: Dashboard for quick actions (New Deal, QR Pay Links, Scan, Withdraw, Deposit).
+Deals: Module for searching and initiating contracts between freelancers and clients.
+Messages: Secure channel for project communication and payment release.
+Passport: User credential and profile verification hub.
+Settings: Personalization and system configuration.
+System Workflow:
+1) Initialization: User logs in and navigates to the 'Deals' section.
+2) Contract Creation: Initiate a new deal; awaits freelancer approval.
+3) Execution: Upon approval, the deal moves to 'Messages' for task collaboration.
+4) Completion: Freelancer submits work; Client reviews and approves to release funds.
+Safeguards:
+1) Auto-Release: If the countdown ends, funds are auto-released after 48 hours.
+2) Dispute System: Allows freelancers to request deadline extensions or additional payments if disagreements occur.
