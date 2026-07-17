@@ -3604,7 +3604,7 @@
       </div>
 
       <!-- SOURCE WALLET -->
-      <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;">
+      <div id="ci-source-section" style="background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;">
         <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">👤 Source Wallet (Client)</div>
         <div style="display:flex;align-items:center;gap:8px;">
           <div id="ci-source-wallet" style="font-family:monospace;font-size:11px;color:var(--text);word-break:break-all;flex:1;">Loading…</div>
@@ -7119,7 +7119,22 @@
     // ── Attempt real on-chain Stellar transfer if secret key is in memory ──
     var sk = _bonusPendingSecretKey;
     _bonusPendingSecretKey = null; // always clear immediately
-    if (sk && data.receiverWallet && typeof _doXLMTransfer === 'function') {
+    // IDEMPOTENCY GUARD: claim the on-chain settlement for this bonus exactly
+    // once. If this listener callback ever fires again for the same 'paid'
+    // change (reconnect, duplicate listener attach across navigations, etc.)
+    // the real transfer + baseline adjustment below must not run twice.
+    var _canSettleBonusOnchain = false;
+    try {
+      _canSettleBonusOnchain = !!(await db.runTransaction(async function(_bct) {
+        var _blRefClaim = db.collection('bonusLinks').doc(data.bonusId);
+        var _blSnapClaim = await _bct.get(_blRefClaim);
+        if (!_blSnapClaim.exists) return false;
+        if (_blSnapClaim.data().onchainSettled) return false; // already handled
+        _bct.update(_blRefClaim, { onchainSettled: true });
+        return true;
+      }));
+    } catch(_bonusClaimErr) { _canSettleBonusOnchain = false; }
+    if (_canSettleBonusOnchain && sk && data.receiverWallet && typeof _doXLMTransfer === 'function') {
       if (overlayStatus) { overlayStatus.textContent = '\u231b Sending on Stellar\u2026'; overlayStatus.style.color = '#fff'; }
       try {
         var txHash = await _doXLMTransfer(sk, data.receiverWallet, data.amount, 'BONUS-' + (data.bonusId || ''));
@@ -7155,7 +7170,9 @@
         showToast('\ud83d\udd17 On-chain Stellar transfer sent!');
       } catch(_txErr) {
         if (overlayStatus) { overlayStatus.textContent = '\u26a0\ufe0f On-chain failed \u2014 ledger OK'; overlayStatus.style.color = '#ffcc88'; }
-        try { await db.collection('bonusLinks').doc(data.bonusId).update({ onchainStatus: 'failed', onchainError: (_txErr&&_txErr.message)||'' }); } catch(_) {}
+        // Release the settlement claim so a retry isn't permanently locked out
+        // just because this attempt failed to send.
+        try { await db.collection('bonusLinks').doc(data.bonusId).update({ onchainStatus: 'failed', onchainError: (_txErr&&_txErr.message)||'', onchainSettled: false }); } catch(_) {}
       }
     } else {
       if (overlayStatus) { overlayStatus.textContent = '\ud83d\udcca Ledger transfer complete'; overlayStatus.style.color = 'rgba(255,255,255,0.75)'; }
@@ -7787,7 +7804,9 @@
     });
     if (chatMsgUnsubscribe) { chatMsgUnsubscribe(); chatMsgUnsubscribe = null; }
     if (_dealStatusUnsub)   { _dealStatusUnsub();   _dealStatusUnsub   = null; }
+    if (_conversationsUnsub) { try { _conversationsUnsub(); } catch(_cu) {} _conversationsUnsub = null; }
     _detachHomeBalanceListener();
+    _detachDealApprovalListener();
     clearSession();
     // ── Clear stellar wallet state so next user starts fresh ──
     freighterAddress = null; freighterBalance = null;
@@ -8118,6 +8137,7 @@
     await refreshUserDoc();
     const u = currentUserDoc || {};
     _attachHomeBalanceListener();
+    _attachDealApprovalListener();
 
     document.getElementById('home-greeting').textContent = u.displayName || u.username || 'User';
     const initials = (u.displayName || u.username || 'U').substring(0,2).toUpperCase();
@@ -8541,7 +8561,10 @@
     if (ddActBtns) {
       const _approved = _ds.toLowerCase() === 'approved';
       ddActBtns.style.display = _approved ? 'flex' : 'none';
-      if (ddRelBtn) ddRelBtn.style.display = _isCreator ? '' : 'none';
+      // Only the CLIENT (payer) should see the Release button, not the deal creator.
+      // A freelancer who creates the deal must NOT be able to release funds to themselves.
+      var _isClientOfDeal = !!(d.clientUid && currentUser && d.clientUid === currentUser.uid);
+      if (ddRelBtn) ddRelBtn.style.display = _isClientOfDeal ? '' : 'none';
     }
 
     const chainEl = document.getElementById('dd-chain-id');
@@ -9676,6 +9699,7 @@
     if (mb) mb.classList.toggle('active', type === 'milestone');
     if (os) os.style.display = type === 'onetime' ? 'block' : 'none';
     if (ms) ms.style.display = type === 'milestone' ? 'block' : 'none';
+    if (type === 'milestone') autoFillMilestoneSelf();
   }
 
   function genMilestoneId() {
@@ -9689,11 +9713,51 @@
   }
 
   function addMilestoneRow() {
-    milestoneRows.push({ id: genMilestoneId(), freelancerUsername: '', freelancerUid: null, freelancerDisplay: '', description: '', amount: '', deadline: '' });
+    const role = (document.getElementById('create-role')||{}).value || '';
+    if (milestoneRows.length === 0 && role === 'freelancer' && currentUser && currentUserDoc) {
+      // First milestone always belongs to the freelancer creating the deal — see autoFillMilestoneSelf().
+      milestoneRows.push({
+        id: genMilestoneId(),
+        freelancerUsername: currentUserDoc.username || '',
+        freelancerUid: currentUser.uid,
+        freelancerDisplay: currentUserDoc.displayName || currentUserDoc.username || '',
+        description: '', amount: '', deadline: '', _isSelf: true
+      });
+    } else {
+      milestoneRows.push({ id: genMilestoneId(), freelancerUsername: '', freelancerUid: null, freelancerDisplay: '', description: '', amount: '', deadline: '' });
+    }
+    renderMilestoneRows();
+  }
+
+  // Keeps Milestone #1 pinned to "you" whenever you're posting as the Freelancer —
+  // called on role change and on switching into Milestone pay mode. If you switch
+  // OUT of the Freelancer role, the lock is released so a Client can pick a real hire.
+  function autoFillMilestoneSelf() {
+    const role = (document.getElementById('create-role')||{}).value || '';
+    if (role === 'freelancer' && currentUser && currentUserDoc) {
+      const myUid = currentUser.uid;
+      const myUsername = currentUserDoc.username || '';
+      const myDisplay = currentUserDoc.displayName || myUsername;
+      if (milestoneRows.length === 0) {
+        milestoneRows.push({ id: genMilestoneId(), freelancerUsername: myUsername, freelancerUid: myUid, freelancerDisplay: myDisplay, description: '', amount: '', deadline: '', _isSelf: true });
+      } else if (!milestoneRows[0]._isSelf) {
+        milestoneRows[0].freelancerUid = myUid;
+        milestoneRows[0].freelancerUsername = myUsername;
+        milestoneRows[0].freelancerDisplay = myDisplay;
+        milestoneRows[0]._isSelf = true;
+      }
+    } else if (milestoneRows[0] && milestoneRows[0]._isSelf) {
+      // No longer posting as Freelancer — release the lock so the field can be filled normally.
+      milestoneRows[0].freelancerUid = null;
+      milestoneRows[0].freelancerUsername = '';
+      milestoneRows[0].freelancerDisplay = '';
+      milestoneRows[0]._isSelf = false;
+    }
     renderMilestoneRows();
   }
 
   function removeMilestoneRow(idx) {
+    if (milestoneRows[idx] && milestoneRows[idx]._isSelf) return; // Milestone #1 stays yours — can't be removed
     milestoneRows.splice(idx, 1);
     renderMilestoneRows();
   }
@@ -9718,7 +9782,9 @@
     if (wrap) wrap.style.display = 'block';
     tbody.innerHTML = milestoneRows.map(function(r, i) {
       var flField;
-      if (r.freelancerUid) {
+      if (r._isSelf) {
+        flField = '<div class="ms-fl-chip" style="opacity:0.95;"><span>' + esc(r.freelancerDisplay || r.freelancerUsername) + ' <span style="font-size:10px;color:var(--green-dark);font-weight:700;background:var(--green-light);padding:2px 6px;border-radius:10px;margin-left:4px;">You · Freelancer</span></span></div>';
+      } else if (r.freelancerUid) {
         flField = '<div class="ms-fl-chip"><span>' + esc(r.freelancerDisplay || r.freelancerUsername) + '</span><button onclick="clearMilestoneFreelancer(' + i + ')" title="Change">✕</button></div>';
       } else {
         flField = '<div class="ms-fl-wrap" style="position:relative;"><input type="text" class="ms-inp" id="ms-fl-inp-' + i + '" placeholder="Search freelancer..." oninput="searchMilestoneFreelancer(' + i + ', this.value)" autocomplete="off" /><div class="party-search-dropdown" id="ms-fl-dd-' + i + '"></div></div>';
@@ -9726,7 +9792,9 @@
       return '<div class="ms-card">' +
         '<div class="ms-card-header">' +
           '<span class="ms-id-badge">' + esc(r.id) + '</span>' +
-          '<button class="ms-rm-btn" onclick="removeMilestoneRow(' + i + ')" title="Remove row">✕ Remove</button>' +
+          (r._isSelf
+            ? '<button class="ms-rm-btn" disabled title="Milestone #1 stays with you" style="opacity:0.35;cursor:not-allowed;">✕ Remove</button>'
+            : '<button class="ms-rm-btn" onclick="removeMilestoneRow(' + i + ')" title="Remove row">✕ Remove</button>') +
         '</div>' +
         '<div class="ms-card-fields">' +
           '<div class="ms-card-row"><span class="ms-card-lbl">Freelancer</span>' + flField + '</div>' +
@@ -9891,6 +9959,7 @@
   }
 
   function clearMilestoneFreelancer(idx) {
+    if (milestoneRows[idx] && milestoneRows[idx]._isSelf) return; // Milestone #1 stays yours — can't be unassigned
     if (milestoneRows[idx]) {
       milestoneRows[idx].freelancerUid = null;
       milestoneRows[idx].freelancerDisplay = '';
@@ -10045,6 +10114,7 @@
     if (lbl) lbl.textContent = 'Freelancer Username';
     if (hdr) hdr.textContent = 'Freelancer Username';
     autoFillPartyByRole();
+    autoFillMilestoneSelf();
   }
 
   function autoFillPartyByRole() {
@@ -10520,14 +10590,25 @@
           var _pNames = {}; var _pDispNames = {}; var _pRoles = {};
           _pNames[currentUser.uid] = currentUserDoc.username || '';
           _pDispNames[currentUser.uid] = currentUserDoc.displayName || currentUserDoc.username || '';
-          _pRoles[currentUser.uid] = role;
+          // Assign roles using clientUid as the source of truth so that freelancer-created
+          // deals correctly mark the employer as 'client' even when the employer UID is
+          // NOT in parties[] (added to participants[] separately above).
+          for (var _pi2 = 0; _pi2 < dealConvoParticipants.length; _pi2++) {
+            var _pUid2 = dealConvoParticipants[_pi2];
+            _pRoles[_pUid2] = (_pUid2 === clientUid) ? 'client' : 'freelancer';
+          }
+          // Party display names (parties[] holds collaborating freelancers)
           for (var _pi = 0; _pi < parties.length; _pi++) {
             var _p = parties[_pi];
             if (_p.uid) {
               _pNames[_p.uid] = _p.username || '';
               _pDispNames[_p.uid] = _p.username || '';
-              _pRoles[_p.uid] = (role === 'client') ? 'freelancer' : 'client';
             }
+          }
+          // Employer display name for freelancer-created deals (not in parties[])
+          if (role === 'freelancer' && employerUid) {
+            _pNames[employerUid] = selectedEmployerUsername || '';
+            _pDispNames[employerUid] = selectedEmployerName || selectedEmployerUsername || '';
           }
           // Check if a conversation for this deal already exists
           var _existConvo = await db.collection('conversations')
@@ -11141,6 +11222,8 @@
     renderActivityLog();
   }
 
+  var _conversationsUnsub = null; // real-time listener so Messages updates instantly, no manual refresh needed
+
   async function loadConversations() {
     if (!currentUser) return;
     document.getElementById('user-search-results').classList.remove('show');
@@ -11148,13 +11231,25 @@
     const listEl = document.getElementById('conversations-list');
     listEl.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px;">Loading…</div>';
 
-    try {
-      const snap = await db.collection('conversations')
-        .where('participants', 'array-contains', currentUser.uid)
-        .get();
+    // Real-time listener: keeps the Messages list (and unread badge) in sync
+    // the instant a conversation is created or a new message arrives.
+    if (_conversationsUnsub) { try { _conversationsUnsub(); } catch(_u) {} _conversationsUnsub = null; }
+    _conversationsUnsub = db.collection('conversations')
+      .where('participants', 'array-contains', currentUser.uid)
+      .onSnapshot(function(snap) { _renderConversationsSnapshot(snap, listEl); },
+                  function(err) {
+                    console.error('loadConversations', err);
+                    listEl.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--red);font-size:13px;">Failed to load. ' + (err.message||'') + '</div>';
+                  });
+  }
 
+  function _renderConversationsSnapshot(snap, listEl) {
+    listEl = listEl || document.getElementById('conversations-list');
+    if (!listEl || !currentUser) return;
+    try {
       if (snap.empty) {
         listEl.innerHTML = '<div style="padding:24px 16px;text-align:center;color:var(--text-muted);font-size:13px;">No conversations yet.<br>Search a username above to start chatting.</div>';
+        updateMsgBadge(0);
         return;
       }
 
@@ -11465,20 +11560,32 @@
       }
       var d = snap.data();
       var xlmEscrowed = parseFloat(d.xlmEscrowed) || 0;
-      var isXLMDeal   = xlmEscrowed > 0;
+      var isXLMDeal   = xlmEscrowed > 0 || (d.currency || '').toUpperCase() === 'XLM';
       var lockHash    = d.sorobanLockTxHash || d.xlmLockTxHash || '';
+      // Display amount: prefer xlmEscrowed (locked amount) but fall back to totalAmount
+      // for freelancer-created XLM deals where xlmEscrowed=0 at creation.
+      var _ciDisplayAmt = xlmEscrowed > 0 ? xlmEscrowed : (parseFloat(d.totalAmount) || 0);
 
-      // PHP / off-chain deal: show off-chain banner, hide Stellar rows
+      // PHP / off-chain deal: show off-chain banner, hide Stellar-specific rows.
+      // Wallet fields are not applicable for PHP deals (no on-chain transactions).
       if (!isXLMDeal) {
         var phpBanner2 = document.getElementById('ci-php-banner');
         var lockRow2   = document.getElementById('ci-lock-row');
         if (phpBanner2) phpBanner2.style.display = 'flex';
         if (lockRow2)   lockRow2.style.display   = 'none';
-        if (srcWalletEl) srcWalletEl.textContent = 'N/A (PHP deal)';
-        if (dstWalletEl) dstWalletEl.textContent = 'N/A (PHP deal)';
+        // Hide blockchain wallet sections entirely for PHP deals
+        var ciSrcSec = document.getElementById('ci-source-section');
+        var ciDstSec = document.getElementById('ci-dest-wallets-wrap');
+        if (ciSrcSec) ciSrcSec.style.display = 'none';
+        if (ciDstSec) ciDstSec.style.display = 'none';
         if (amountEl)    amountEl.textContent    = 'PHP ' + Number(d.totalAmount || 0).toLocaleString();
         return;
       }
+
+      // Compute release status here so it is available for the amount label below
+      // regardless of whether we enter the lockHash branch or the no-lockTX else branch.
+      var _ciDealStatus = d.status || d.DealStatus || '';
+      var _ciIsReleased = (_ciDealStatus === 'released' || _ciDealStatus === 'Released' || d.escrowStatus === 'released');
 
       // XLM deal: show lock TX hash(es). May be comma-separated for multi-freelancer deals.
       if (lockHash) {
@@ -11517,8 +11624,8 @@
         // NOTE: we intentionally no longer try to fabricate/backfill a fake LOCK TX here --
         // that used to call an unfunded fallback keypair and surfaced a confusing
         // 'Signer wallet not found' error with no real benefit.
-        var _ciDealStatus = d.status || d.DealStatus || '';
-        var _ciIsReleased = (_ciDealStatus === 'released' || _ciDealStatus === 'Released' || d.escrowStatus === 'released');
+        // _ciDealStatus and _ciIsReleased computed above (before lockHash if/else)
+
         if (lockEl) lockEl.textContent = _ciIsReleased
           ? 'In-app escrow (no separate lock TX) — see Release TX below for the real on-chain transfer.'
           : 'In-app escrow — funds move on-chain directly when released.';
@@ -11527,7 +11634,7 @@
       }
 
       // Escrowed amount
-      if (amountEl) amountEl.textContent = xlmEscrowed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 7 }) + ' XLM';
+      if (amountEl) amountEl.textContent = _ciDisplayAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 7 }) + ' XLM' + (xlmEscrowed === 0 && !_ciIsReleased ? ' (pending lock)' : '');
 
       // Source wallet (client) and Destination wallet (freelancer)
       var clientUidCI     = d.clientUid || '';
@@ -11909,12 +12016,14 @@
 
     // Fetch deal's xlmEscrowed so we update XLM balances correctly
     var _xlmEscrowedRelease = 0;
+    var _dealTotalAmount     = 0;
     var _clientUidRelease   = null;
     if (dealId) {
       try {
         const _ds = await db.collection('deals').doc(dealId).get();
         if (_ds.exists) {
           _xlmEscrowedRelease = parseFloat(_ds.data().xlmEscrowed) || 0;
+          _dealTotalAmount     = parseFloat(_ds.data().totalAmount)   || 0;
           _clientUidRelease   = _ds.data().clientUid || null;
         }
       } catch(_de) {}
@@ -12003,14 +12112,18 @@
           const fuSnap = await db.collection('users').doc(freelancerUid).get();
           if (fuSnap.exists) freelancerName = fuSnap.data().displayName || fuSnap.data().username || null;
         } catch(e) {}
-        var _singleAmt = _xlmEscrowedRelease > 0 ? _xlmEscrowedRelease : (amount || 0);
+        var _singleAmt = _xlmEscrowedRelease > 0 ? _xlmEscrowedRelease : (_dealTotalAmount > 0 ? _dealTotalAmount : (amount || 0));
         _releasedParts.push({ name: freelancerName, amount: _singleAmt, uid: freelancerUid });
       }
 
       // 1b. Release escrowedTotal from client (works for both XLM and PHP deals).
       // Uses FieldValue.increment so the decrement is atomic regardless of who triggers release.
       var _cUid = _clientUidRelease || (currentUser ? currentUser.uid : null);
-      var _escrowReleaseAmt = _xlmEscrowedRelease > 0 ? _xlmEscrowedRelease : (amount || 0);
+      // For freelancer-created XLM deals, xlmEscrowed=0 at creation but escrow was
+      // locked using totalAmount (via the PHP-path transaction at approval time).
+      // Use totalAmount as fallback so escrowedTotal is correctly decremented.
+      var _escrowReleaseAmt = _xlmEscrowedRelease > 0 ? _xlmEscrowedRelease
+        : (_dealTotalAmount > 0 ? _dealTotalAmount : (amount || 0));
       if (_escrowReleaseAmt > 0 && _cUid) {
         // CR-3: queue client escrow release in batch
         _walletBatch.update(db.collection('users').doc(_cUid), {
@@ -12077,14 +12190,14 @@
       if (_releasedParts.length > 1) {
         var _brkLines = _releasedParts.map(function(p) {
           var _n = p.name ? '@' + p.name : 'Freelancer';
-          var _a = p.amount != null ? '₱' + Number(p.amount).toLocaleString() : 'Payment';
+          var _a = p.amount != null ? Number(p.amount).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + ' XLM' : 'Payment';
           return _n + ' received ' + _a;
         }).join(', ');
         _sysMsgText = prefix + 'Payments released — ' + _brkLines + '.';
       } else {
         var _sName = (freelancerName || (_releasedParts[0] && _releasedParts[0].name));
         var nameTag  = _sName ? '@' + _sName : 'the freelancer';
-        var amtLabel = amount != null ? '₱' + Number(amount).toLocaleString() : 'Payment';
+        var amtLabel = amount != null ? Number(amount).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + ' XLM' : 'Payment';
         _sysMsgText = prefix + amtLabel + ' was released to ' + nameTag + '\'s wallet.';
       }
       await _sendSystemMessage(_sysMsgText);
@@ -12775,6 +12888,20 @@
     activeChatDealId   = (dealInfo && dealInfo.dealId)   || null;
     activeChatDeadline = (dealInfo && dealInfo.deadline)  || null;
     activeChatUserRole = (dealInfo && dealInfo.userRole)  || null;
+    // Fallback: if participantRoles wasn't stored (older deals or freelancer-created deals
+    // where the employer UID was missing from the roles map), determine the role from the
+    // deal document's clientUid so the correct action buttons are shown.
+    if (!activeChatUserRole && activeChatDealId && currentUser) {
+      try {
+        var _rfSnap = await db.collection('deals').doc(activeChatDealId).get();
+        if (_rfSnap.exists) {
+          var _rfData = _rfSnap.data();
+          if (_rfData.clientUid) {
+            activeChatUserRole = (_rfData.clientUid === currentUser.uid) ? 'client' : 'freelancer';
+          }
+        }
+      } catch(_rfErr) { /* non-critical — role stays null, action bar stays empty */ }
+    }
 
     document.getElementById('chat-name').textContent   = (dealInfo && dealInfo.dealTitle) ? dealInfo.dealTitle : (otherDisplayName || otherName);
     document.getElementById('chat-status').textContent = (dealInfo && dealInfo.dealTitle) ? ('@' + (otherDisplayName || otherName)) : 'Tap to view profile';
@@ -12790,7 +12917,7 @@
       document.getElementById('chat-banner-title').textContent = dealInfo.dealTitle || 'Deal';
       // Amount — prefer _convoMeta, fall back to deal doc fetch for legacy data
       let amt = dealInfo.amount;
-      document.getElementById('chat-banner-amount').textContent = amt != null ? '₱' + Number(amt).toLocaleString() : '—';
+      document.getElementById('chat-banner-amount').textContent = amt != null ? Number(amt).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + ' XLM' : '—';
       // Always fetch deal doc: amount fallback + per-freelancer release breakdown
       if (activeChatDealId) {
         // BUGFIX: capture which chat/deal this fetch was for. If the user switches
@@ -12808,7 +12935,7 @@
             var fetchedAmt = da.totalAmount != null ? da.totalAmount : (da.parties && da.parties[0] ? da.parties[0].amount : null);
             if (fetchedAmt != null) {
               if (_convoMeta[convoId]) _convoMeta[convoId].amount = fetchedAmt;
-              document.getElementById('chat-banner-amount').textContent = '₱' + Number(fetchedAmt).toLocaleString();
+              document.getElementById('chat-banner-amount').textContent = Number(fetchedAmt).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + ' XLM';
             }
           }
           // Per-freelancer release breakdown — includes deadline & released state per line
@@ -13009,7 +13136,7 @@
           // ── Real-time amount update ──
           if (sd.totalAmount != null) {
             const amtEl = document.getElementById('chat-banner-amount');
-            if (amtEl) amtEl.textContent = '\u20B1' + Number(sd.totalAmount).toLocaleString();
+            if (amtEl) amtEl.textContent = Number(sd.totalAmount).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + ' XLM';
             if (_convoMeta[activeChatConvoId]) _convoMeta[activeChatConvoId].amount = sd.totalAmount;
           }
 
@@ -15274,15 +15401,38 @@
     var amt = req.amount;
     if (!(amt > 0)) { showToast('⚠️ Invalid escrow amount.'); return; }
 
+    // BUGFIX: the escrow QR can be generated by either side —
+    //  • a Freelancer requesting payment (legacy/default flow: creator = freelancer,
+    //    approver = client who pays), or
+    //  • a Client requesting an escrow deal with a Freelancer they hired
+    //    (creator = client, approver = freelancer).
+    // Previously the code always assumed the QR *creator* was the freelancer and the
+    // *approver* (scanner) was the client who gets charged. When a Client generated
+    // the QR and a Freelancer scanned it, that meant the Freelancer's own wallet got
+    // debited and the Freelancer ended up owning the release — backwards, since the
+    // Freelancer did the work and should be the one getting paid/releasing nothing.
+    // We now check req.creatorRole and route the escrow debit + client/freelancer
+    // assignment to whichever side is actually the Client.
+    var _creatorIsClient = (req.creatorRole === 'client');
+    var payerUid    = _creatorIsClient ? req.creatorUid : currentUser.uid;
+    var payerWallet = _creatorIsClient ? (req.creatorWallet || '') : myWallet;
+
+    if (_creatorIsClient && !payerWallet) {
+      showToast('⚠️ The client\'s GaranZ Wallet is not set up yet.');
+      return;
+    }
+
     if (approveBtn) { approveBtn.disabled = true; approveBtn.textContent = 'Checking balance…'; }
     if (rejectBtn)  rejectBtn.disabled = true;
-    if (statusEl) statusEl.textContent = 'Checking your XLM balance…';
+    if (statusEl) statusEl.textContent = 'Checking XLM balance…';
 
     var xlmBal = null;
-    try { xlmBal = await _fetchXLMBalanceWithActivation(myWallet); } catch (_be) { xlmBal = null; }
+    try { xlmBal = await _fetchXLMBalanceWithActivation(payerWallet); } catch (_be) { xlmBal = null; }
     var xlmAvail = xlmBal !== null ? parseFloat(xlmBal) : 0;
     if (xlmBal === null || xlmAvail < (amt + 1.5)) {
-      if (statusEl) statusEl.textContent = '⚠️ Insufficient XLM balance (need ' + (amt + 1.5).toLocaleString(undefined,{maximumFractionDigits:4}) + ' XLM incl. reserve).';
+      if (statusEl) statusEl.textContent = _creatorIsClient
+        ? '⚠️ The client has insufficient XLM balance to fund this escrow.'
+        : '⚠️ Insufficient XLM balance (need ' + (amt + 1.5).toLocaleString(undefined,{maximumFractionDigits:4}) + ' XLM incl. reserve).';
       if (approveBtn) { approveBtn.disabled = false; approveBtn.textContent = '✓ Approve'; }
       if (rejectBtn)  rejectBtn.disabled = false;
       return;
@@ -15294,7 +15444,17 @@
     var approverUsername = currentUserDoc.username || '';
     var dealRef = db.collection('deals').doc();
     var reqRef = db.collection('escrowRequests').doc(req.requestId);
-    var userRef = db.collection('users').doc(approverUid);
+    var payerRef = db.collection('users').doc(payerUid);
+    // Client / Freelancer assignment for the resulting deal — swapped when the
+    // Client was the one who generated the QR (see _creatorIsClient above), so the
+    // payer is always recorded as clientUid and the payee as freelancerUid.
+    var clientUid          = _creatorIsClient ? req.creatorUid : approverUid;
+    var freelancerUid      = _creatorIsClient ? approverUid : req.creatorUid;
+    var clientUsername     = _creatorIsClient ? (req.creatorUsername || '') : approverUsername;
+    var freelancerUsername = _creatorIsClient ? approverUsername : (req.creatorUsername || '');
+    var clientName         = _creatorIsClient ? req.creatorName : approverName;
+    var freelancerName     = _creatorIsClient ? approverName : (req.creatorName || '');
+    var clientWallet       = payerWallet;
     var failReason = '';
     var ok = false;
     try {
@@ -15303,7 +15463,7 @@
         if (!reqSnap.exists) { failReason = 'notfound'; return false; }
         var rd = reqSnap.data();
         if ((rd.status || 'pending') !== 'pending') { failReason = 'responded'; return false; }
-        var userSnap = await t.get(userRef);
+        var userSnap = await t.get(payerRef);
         var ud = userSnap.exists ? userSnap.data() : {};
         var curBal = parseFloat(ud.stellarBalance) || 0;
         if (curBal < amt) { failReason = 'balance'; return false; }
@@ -15314,17 +15474,17 @@
           title: rd.title, currency: 'XLM', category: 'General', description: rd.description || '',
           deadline: rd.deadline || '', status: 'active', DealStatus: 'Approved',
           paymentType: 'onetime', myRole: 'freelancer',
-          clientUid: approverUid, freelancerUid: rd.creatorUid,
-          clientUsername: approverUsername, freelancerUsername: rd.creatorUsername || '',
-          clientWallet: myWallet,
-          employerName: approverName, employerUid: approverUid,
+          clientUid: clientUid, freelancerUid: freelancerUid,
+          clientUsername: clientUsername, freelancerUsername: freelancerUsername,
+          clientWallet: clientWallet,
+          employerName: clientName, employerUid: clientUid,
           // BUGFIX: parties must list the FREELANCER(S) who receive the payout on release
           // (confirmReleaseXLM reads deal.parties[].uid/.garanzWallet as the real-money
-          // recipient list) — it must never contain the approver/client's own uid, or
+          // recipient list) — it must never contain the client's own uid, or
           // release-time code treats the CLIENT as their own freelancer: it pays/credits
           // the client's own wallet (a real self-transfer on Stellar) while the actual
           // freelancer never gets paid.
-          parties: [{ username: rd.creatorUsername || '', uid: rd.creatorUid, amount: amt }],
+          parties: [{ username: freelancerUsername, uid: freelancerUid, amount: amt }],
           milestones: [], totalAmount: amt,
           participants: [rd.creatorUid, approverUid],
           approvals: approvalsMap,
@@ -15340,7 +15500,10 @@
           respondedBy: approverUid, respondedByName: approverName,
           respondedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        t.update(userRef, {
+        // Escrowed funds always come out of the PAYER's (client's) wallet — the
+        // creator's own wallet when they generated the QR as a Client, or the
+        // approver's wallet in the default Freelancer-generates-QR flow.
+        t.update(payerRef, {
           stellarBalance: firebase.firestore.FieldValue.increment(-amt),
           escrowedTotal:  firebase.firestore.FieldValue.increment(amt)
         });
@@ -15359,7 +15522,10 @@
       return;
     }
 
-    if (currentUserDoc) {
+    // Only update the LOCAL cached balance shown on this device if the person using
+    // this device is actually the one who paid — not the case when a Client's QR
+    // was approved by a Freelancer scanning it on the Freelancer's own device.
+    if (currentUserDoc && payerUid === currentUser.uid) {
       currentUserDoc.stellarBalance = (parseFloat(currentUserDoc.stellarBalance) || 0) - amt;
       currentUserDoc.escrowedTotal  = (parseFloat(currentUserDoc.escrowedTotal)  || 0) + amt;
       var _ltElQr = document.getElementById('home-lifetime');
@@ -15368,7 +15534,7 @@
         _ltElQr.textContent = _newBalQr.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
       }
     }
-    try { recordWalletTxn('escrow_lock', { amount: amt, dealId: dealRef.id, note: 'Escrow locked for deal: ' + (req.title || dealRef.id) }, approverUid); } catch (_rwe) {}
+    try { recordWalletTxn('escrow_lock', { amount: amt, dealId: dealRef.id, note: 'Escrow locked for deal: ' + (req.title || dealRef.id) }, payerUid); } catch (_rwe) {}
     try {
       await db.collection('parties').doc(dealRef.id + '_' + approverUid).set({
         dealId: dealRef.id, dealTitle: req.title || '', uid: approverUid, username: approverUsername,
@@ -15377,8 +15543,8 @@
     } catch (_pe) {}
     try {
       var pNames = {}, pDispNames = {}, pRoles = {};
-      pNames[approverUid] = approverUsername; pDispNames[approverUid] = approverName; pRoles[approverUid] = 'client';
-      pNames[req.creatorUid] = req.creatorUsername || ''; pDispNames[req.creatorUid] = req.creatorName || ''; pRoles[req.creatorUid] = 'freelancer';
+      pNames[clientUid] = clientUsername; pDispNames[clientUid] = clientName; pRoles[clientUid] = 'client';
+      pNames[freelancerUid] = freelancerUsername; pDispNames[freelancerUid] = freelancerName; pRoles[freelancerUid] = 'freelancer';
       await db.collection('conversations').add({
         participants: [req.creatorUid, approverUid],
         participantNames: pNames, participantDisplayNames: pDispNames, participantRoles: pRoles,
@@ -15419,6 +15585,15 @@
     var amt = req.amount;
     var dealRef = db.collection('deals').doc();
     var reqRef = db.collection('escrowRequests').doc(req.requestId);
+    // BUGFIX: same role-aware fix as approveEscrowRequest() — the QR creator may be
+    // the Client (not the Freelancer), so client/freelancer must not be hardcoded.
+    var _creatorIsClient   = (req.creatorRole === 'client');
+    var clientUid          = _creatorIsClient ? req.creatorUid : approverUid;
+    var freelancerUid      = _creatorIsClient ? approverUid : req.creatorUid;
+    var clientUsername     = _creatorIsClient ? (req.creatorUsername || '') : approverUsername;
+    var freelancerUsername = _creatorIsClient ? approverUsername : (req.creatorUsername || '');
+    var clientName         = _creatorIsClient ? req.creatorName : approverName;
+    var clientWallet       = _creatorIsClient ? (req.creatorWallet || '') : ((currentUserDoc && currentUserDoc.garanzWallet) || '');
     var failReason = '';
     var ok = false;
     try {
@@ -15434,14 +15609,13 @@
           title: rd.title, currency: 'XLM', category: 'General', description: rd.description || '',
           deadline: rd.deadline || '', status: 'active', DealStatus: 'Rejected',
           paymentType: 'onetime', myRole: 'freelancer',
-          clientUid: approverUid, freelancerUid: rd.creatorUid,
-          clientUsername: approverUsername, freelancerUsername: rd.creatorUsername || '',
-          clientWallet: (currentUserDoc && currentUserDoc.garanzWallet) || '',
-          employerName: approverName, employerUid: approverUid,
-          // BUGFIX: same fix as approveEscrowRequest() — parties must reference the
-          // freelancer (creator), not the approver, for data consistency even though
-          // rejected deals never reach release.
-          parties: [{ username: rd.creatorUsername || '', uid: rd.creatorUid, amount: rd.amount }],
+          clientUid: clientUid, freelancerUid: freelancerUid,
+          clientUsername: clientUsername, freelancerUsername: freelancerUsername,
+          clientWallet: clientWallet,
+          employerName: clientName, employerUid: clientUid,
+          // BUGFIX: parties must reference the freelancer (payee), not the client,
+          // for data consistency even though rejected deals never reach release.
+          parties: [{ username: freelancerUsername, uid: freelancerUid, amount: rd.amount }],
           milestones: [], totalAmount: rd.amount,
           participants: [rd.creatorUid, approverUid],
           approvals: approvalsMap,
@@ -16338,8 +16512,8 @@
           }
 
           // Update banner total
-          const amtEl = document.getElementById('chat-banner-amount'); if (amtEl) amtEl.textContent = '₱' + newAmt.toLocaleString();
-          await _sendSystemMessage('✅ ' + myName + ' approved the additional ₱' + addAmt.toLocaleString() + ' — total is now ₱' + newAmt.toLocaleString() + '.');
+          const amtEl = document.getElementById('chat-banner-amount'); if (amtEl) amtEl.textContent = Number(newAmt).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + ' XLM';
+          await _sendSystemMessage('✅ ' + myName + ' approved the additional ' + Number(addAmt).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + ' XLM — total is now ' + Number(newAmt).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + ' XLM.');
           showToast('✅ Payment approved! Deal total updated.');
         } else {
           showToast('❌ Deal ID not found — could not save to Firebase.');
@@ -16495,8 +16669,8 @@
         await db.collection('deals').doc(afDealId).update({ totalAmount: newAmt, bonusAdded: firebase.firestore.FieldValue.increment(amt), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
         await db.collection('conversations').doc(activeChatConvoId).update({ amount: newAmt });
         if (_convoMeta[activeChatConvoId]) _convoMeta[activeChatConvoId].amount = newAmt;
-        const amtEl = document.getElementById('chat-banner-amount'); if (amtEl) amtEl.textContent = '₱' + newAmt.toLocaleString();
-        const bonusMsg = '💰 ' + myName + ' added a ₱' + amt.toLocaleString() + ' bonus' + (note ? ' — "' + note + '"' : '') + '. Total is now ₱' + newAmt.toLocaleString() + '.';
+        const amtEl = document.getElementById('chat-banner-amount'); if (amtEl) amtEl.textContent = Number(newAmt).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + ' XLM';
+        const bonusMsg = '💰 ' + myName + ' added a ' + Number(amt).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + ' XLM bonus' + (note ? ' — "' + note + '"' : '') + '. Total is now ' + Number(newAmt).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + ' XLM.';
         await _sendSystemMessage(bonusMsg);
         showToast('💰 Bonus added! Total updated.');
       }
@@ -16569,16 +16743,29 @@
         return;
       }
       var onchain  = parseFloat(onchainStr) || 0;
-      var baseline = parseFloat(currentUserDoc.onchainSyncedBaseline) || 0;
-      var delta = onchain - baseline;
+      // RACE FIX: read+compare+write the baseline inside ONE Firestore
+      // transaction against the server's current value -- never against the
+      // local JS cache, which can be stale while another async operation
+      // (e.g. the bonus on-chain-settle baseline adjustment) is still in
+      // flight, and previously produced a phantom positive delta.
+      var delta = 0;
+      await db.runTransaction(async function(_st) {
+        var _suRef = db.collection('users').doc(currentUser.uid);
+        var _suSnap = await _st.get(_suRef);
+        if (!_suSnap.exists) { delta = 0; return; }
+        var _freshBaseline = parseFloat(_suSnap.data().onchainSyncedBaseline) || 0;
+        var _d = onchain - _freshBaseline;
+        if (_d <= 0.0000001) { delta = 0; return; }
+        delta = _d;
+        _st.update(_suRef, {
+          stellarBalance: firebase.firestore.FieldValue.increment(_d),
+          onchainSyncedBaseline: onchain
+        });
+      });
       if (delta <= 0.0000001) {
         if (!silent) showToast('✅ No new on-chain deposit detected.');
         return;
       }
-      await db.collection('users').doc(currentUser.uid).update({
-        stellarBalance: firebase.firestore.FieldValue.increment(delta),
-        onchainSyncedBaseline: onchain
-      });
       currentUserDoc.stellarBalance = (parseFloat(currentUserDoc.stellarBalance) || 0) + delta;
       currentUserDoc.onchainSyncedBaseline = onchain;
       recordWalletTxn('onchain_deposit', {
@@ -16997,6 +17184,57 @@
     _homeOnchainPollTimer = setInterval(function() {
       if (cur === 's-home' && currentUser) _refreshOnchainPill();
     }, 15000);
+  }
+
+  // ══════════════════════════════════════════════
+  // REAL-TIME DEAL APPROVAL NOTIFY (toast the deal creator instantly)
+  // ══════════════════════════════════════════════
+  // When a deal has more than one party to approve it (e.g. a client hires a
+  // freelancer, or a freelancer's payment request is scanned by a client),
+  // the person who CREATED the deal used to only find out someone else
+  // approved by re-opening My Deals. This attaches a session-wide listener
+  // (started right after login, same lifecycle as the home balance listener
+  // above) so the creator gets a toast the instant another party approves,
+  // no matter which screen they're currently on.
+  var _dealApprovalNotifyUnsub = null;
+  var _dealApprovalSeen        = null; // dealId -> {uid: 'approved', ...}; null until primed by the first snapshot
+
+  function _attachDealApprovalListener() {
+    if (!currentUser || _dealApprovalNotifyUnsub) return; // already attached for this session
+    _dealApprovalSeen = null;
+    _dealApprovalNotifyUnsub = db.collection('deals')
+      .where('participants', 'array-contains', currentUser.uid)
+      .onSnapshot(function(snap) {
+        var _isFirstPass = (_dealApprovalSeen === null);
+        if (_isFirstPass) _dealApprovalSeen = {};
+        snap.forEach(function(doc) {
+          var d = doc.data() || {};
+          var newApprovals = d.approvals || {};
+          // Only the person who created the deal gets notified here — the
+          // approving party already sees their own confirmation toast
+          // inline from handleMyDealAction()/approveEscrowRequest().
+          var _iAmCreator = !_isFirstPass && currentUserDoc && currentUserDoc.username && d.createdBy === currentUserDoc.username;
+          if (_iAmCreator) {
+            var prevApprovals = _dealApprovalSeen[doc.id] || {};
+            var partyList = d.approverUid ? [d.approverUid] : (d.parties || []).map(function(p){ return p.uid; }).filter(Boolean);
+            partyList.forEach(function(uid) {
+              if (!uid || uid === currentUser.uid) return; // never toast my own action
+              if (prevApprovals[uid] !== 'approved' && newApprovals[uid] === 'approved') {
+                var p = (d.parties || []).find(function(pp){ return pp.uid === uid; });
+                var who = (p && p.username) ? ('@' + p.username) : 'The freelancer';
+                var isNowActive = (d.DealStatus || '') === 'Approved';
+                showToast('✅ ' + who + ' approved "' + (d.title || 'the deal') + '"' + (isNowActive ? ' — deal is now Active & escrow locked!' : ' — waiting for other parties.'));
+              }
+            });
+          }
+          _dealApprovalSeen[doc.id] = Object.assign({}, newApprovals);
+        });
+      }, function(_e) { console.warn('[GARANSI] deal approval notify listener error', _e); });
+  }
+
+  function _detachDealApprovalListener() {
+    if (_dealApprovalNotifyUnsub) { try { _dealApprovalNotifyUnsub(); } catch(_){} _dealApprovalNotifyUnsub = null; }
+    _dealApprovalSeen = null;
   }
 
   function _detachHomeBalanceListener() {
@@ -18247,6 +18485,21 @@
   </div>
   <!-- ════ END XLM RELEASE MODAL ════ -->
 
+  <!-- Discard-release confirmation — shown before actually closing the Release
+       modal (via outside-tap or Cancel) so an in-progress release/password entry
+       is never lost from an accidental tap. -->
+  <div id="xlm-release-discard-overlay" style="display:none;position:fixed;inset:0;z-index:10002;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;padding:24px;" onclick="if(event.target===this)_hideReleaseDiscardConfirm()">
+    <div style="background:var(--card);border-radius:18px;padding:22px 20px;width:100%;max-width:300px;box-shadow:0 8px 40px rgba(0,0,0,0.3);animation:modal-pop .18s cubic-bezier(.34,1.56,.64,1) both;" onclick="event.stopPropagation()">
+      <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px;text-align:center;">Discard this release?</div>
+      <div style="font-size:12.5px;color:var(--text-muted);line-height:1.5;text-align:center;margin-bottom:18px;">You'll need to re-enter your password to release funds again.</div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="_hideReleaseDiscardConfirm()" style="flex:1;padding:11px;border-radius:12px;border:1.5px solid var(--border);background:transparent;font-size:13.5px;font-weight:700;color:var(--text);cursor:pointer;">Keep Editing</button>
+        <button onclick="_confirmDiscardReleaseModal()" style="flex:1;padding:11px;border-radius:12px;border:none;background:var(--red,#e5484d);color:#fff;font-size:13.5px;font-weight:800;cursor:pointer;">Discard</button>
+      </div>
+    </div>
+  </div>
+  <!-- ════ END DISCARD-RELEASE CONFIRMATION ════ -->
+
   <script>
   // ══════════════════════════════════════════════
   // XLM ESCROW RELEASE — Password-protected flow
@@ -18288,7 +18541,9 @@
           if (_odSnap.exists) {
             var _odData = _odSnap.data();
             _relDealData = _odData;
-            totalAmt = parseFloat(_odData.xlmEscrowed) || parseFloat(meta.amount) || 0;
+            // xlmEscrowed=0 for freelancer-created XLM deals (not yet locked on-chain at creation);
+            // fall back to totalAmount so the release amount is correct.
+            totalAmt = parseFloat(_odData.xlmEscrowed) || parseFloat(_odData.totalAmount) || parseFloat(meta.amount) || 0;
           } else { totalAmt = meta.amount != null ? Number(meta.amount) : 0; }
         } catch(_odErr) { totalAmt = meta.amount != null ? Number(meta.amount) : 0; }
       } else { totalAmt = meta.amount != null ? Number(meta.amount) : 0; }
@@ -18303,16 +18558,25 @@
     if (!dealId)       { showToast('\u26a0\ufe0f No deal selected.'); return; }
     if (!freelancerUid){ showToast('\u26a0\ufe0f Could not identify the freelancer for this deal.'); return; }
 
-    // Detect XLM vs PHP deal. XLM deals have xlmEscrowed > 0 in Firestore.
-    // PHP deals only need password auth, no Stellar wallet required.
+    // Detect XLM vs PHP deal. XLM deals have xlmEscrowed > 0 OR currency === 'XLM' in Firestore.
+    // Freelancer-created XLM deals have xlmEscrowed=0 but currency='XLM'; PHP deals truly have no Stellar component.
     var _isXlmDeal = false;
     if (window._currentDeal) {
-      _isXlmDeal = parseFloat(window._currentDeal.xlmEscrowed || 0) > 0;
+      // Also check currency field: freelancer-created XLM deals have xlmEscrowed=0
+      // at creation (escrowed only when client locks funds), but currency is still 'XLM'.
+      _isXlmDeal = parseFloat(window._currentDeal.xlmEscrowed || 0) > 0
+        || (window._currentDeal.currency || '').toUpperCase() === 'XLM';
     }
     if (!_isXlmDeal && dealId) {
       try {
         var _xlmChk = await db.collection('deals').doc(dealId).get();
-        if (_xlmChk.exists) { _isXlmDeal = parseFloat(_xlmChk.data().xlmEscrowed || 0) > 0; }
+        if (_xlmChk.exists) {
+          var _xlmChkData = _xlmChk.data();
+          _isXlmDeal = parseFloat(_xlmChkData.xlmEscrowed || 0) > 0
+            || (_xlmChkData.currency || '').toUpperCase() === 'XLM';
+          // Also capture totalAmount for amount fallback above (may run before this block)
+          if (_relDealData && !_relDealData.totalAmount) _relDealData = _xlmChkData;
+        }
         // For PHP deals, also get totalAmount if totalAmt not yet set
         if (!_isXlmDeal && totalAmt <= 0 && _xlmChk.exists) {
           totalAmt = parseFloat(_xlmChk.data().totalAmount || _xlmChk.data().amount || 0);
@@ -18448,7 +18712,24 @@
     }
   }
 
+  // BUGFIX: tapping outside the Release modal or tapping Cancel used to close it
+  // immediately, silently discarding any password already typed. Both paths now
+  // route through a small "Discard this release?" confirmation first — the modal
+  // itself is only actually closed once the person confirms Discard.
   function closeReleaseXLMModal() {
+    var overlay = document.getElementById('xlm-release-overlay');
+    if (!overlay || overlay.style.display === 'none') return; // nothing open — nothing to confirm
+    var discardOverlay = document.getElementById('xlm-release-discard-overlay');
+    if (discardOverlay) discardOverlay.style.display = 'flex';
+  }
+
+  function _hideReleaseDiscardConfirm() {
+    var discardOverlay = document.getElementById('xlm-release-discard-overlay');
+    if (discardOverlay) discardOverlay.style.display = 'none';
+  }
+
+  function _confirmDiscardReleaseModal() {
+    _hideReleaseDiscardConfirm();
     var overlay = document.getElementById('xlm-release-overlay');
     if (overlay) overlay.style.display = 'none';
     var msWrap = document.getElementById('xlm-release-milestones-wrap');
@@ -18494,7 +18775,7 @@
 
       // PHP SHORTCUT: after password verified, skip Stellar ops and call _doReleasePayment
       if (_releaseXLMContext && _releaseXLMContext.isPHP) {
-        closeReleaseXLMModal();
+        _confirmDiscardReleaseModal();
         try {
           await _doReleasePayment(false);
         } catch(_phpRelErr) {
@@ -18607,7 +18888,7 @@
         return;
       }
       if (!_xlmReleaseClaimed) {
-        closeReleaseXLMModal();
+        _confirmDiscardReleaseModal();
         showToast('\u2705 Payment was already released.');
         _releaseXLMInFlight = false;
         return;
@@ -18997,7 +19278,7 @@
       var _finalAmt      = _releaseXLMContext ? _releaseXLMContext.amount : 0;
       var _finalDealId   = _releaseXLMContext ? _releaseXLMContext.dealId  : null;
       var _finalMsTotal  = _relMilestonesCur.length;
-      closeReleaseXLMModal();
+      _confirmDiscardReleaseModal();
       var amtFmt = Number(_finalAmt).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
       var _toastName = _xlmPaidList.length > 1 ? _xlmPaidList.length + ' freelancers' : (freelancerName || 'Freelancer');
       var _relProgressNote = (_relIsPartial && _xtMatchedMilestones.length > 0)
