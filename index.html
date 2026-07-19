@@ -1728,6 +1728,26 @@
     .mydeals-btn:hover { opacity:0.82; }
     @media(prefers-color-scheme:dark){ .mydeals-btn.reject { background:#3d1212;color:#f87171; } }
     .dark .mydeals-btn.reject { background:#3d1212;color:#f87171; }
+    /* ══════════ SKILL TEST SECTION ══════════ */
+    .skilltest-add-btn { display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px 16px;border-radius:var(--radius);border:2px dashed var(--green);background:var(--green-light);color:var(--green-dark);font-size:14px;font-weight:700;cursor:pointer;margin-bottom:14px;transition:all var(--transition);font-family:'Inter',sans-serif; }
+    .skilltest-add-btn:active { transform:scale(0.98); }
+    .skilltest-card { background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:10px;border:1.5px solid var(--border);transition:box-shadow var(--transition); }
+    .skilltest-card-title { font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;line-height:1.4; }
+    .skilltest-card-desc { font-size:13px;color:var(--text-mid);line-height:1.6;margin-bottom:10px; }
+    .skilltest-card-footer { display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--border); }
+    .skilltest-action-btn { display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:100px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--bg);color:var(--text-mid);transition:all var(--transition);font-family:'Inter',sans-serif; }
+    .skilltest-action-btn:active { transform:scale(0.95); }
+    .skilltest-action-btn.liked { background:#fff0f0;border-color:var(--red);color:var(--red); }
+    .skilltest-action-btn.reported { background:var(--orange-light);border-color:var(--orange);color:var(--orange); }
+    .skilltest-action-btn svg { width:13px;height:13px;stroke-width:2;flex-shrink:0; }
+    .skilltest-complete-btn { margin-left:auto;padding:5px 14px;border-radius:100px;font-size:12px;font-weight:700;cursor:pointer;border:none;background:var(--green);color:#fff;transition:all var(--transition);font-family:'Inter',sans-serif; }
+    .skilltest-complete-btn.done { background:var(--border);color:var(--text-muted);cursor:default; }
+    .skilltest-complete-btn:active:not(.done) { transform:scale(0.95); }
+    body.dark-mode .skilltest-card { background:var(--card);border-color:var(--card-border); }
+    body.dark-mode .skilltest-add-btn { background:rgba(45,199,142,0.1);border-color:rgba(45,199,142,0.3); }
+    .qa-icon.purple { background:rgba(147,51,234,0.12); }
+    .qa-icon.purple svg { stroke:#9333ea; }
+
     .pay-type-toggle { display:flex; gap:8px; margin-top:2px; }
     .pay-type-btn { flex:1; padding:11px 0; border-radius:10px; border:2px solid var(--card-border); background:var(--card); color:var(--text-muted); font-size:13px; font-weight:700; cursor:pointer; transition:all 0.18s; }
     .pay-type-btn.active { border-color:var(--green); background:var(--green-light); color:var(--green-dark); }
@@ -1871,6 +1891,20 @@
     }
     .comment-send-btn svg { width: 16px; height: 16px; stroke: #fff; stroke-width: 2; }
     .comment-send-btn:active { transform: scale(0.93); }
+    /* ── Comment file attachment ── */
+    .comment-attach-btn { width:36px;height:36px;border-radius:50%;background:var(--bg);border:1.5px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all var(--transition); }
+    .comment-attach-btn svg { width:16px;height:16px;stroke:var(--text-mid);stroke-width:2; }
+    .comment-attach-btn:active { transform:scale(0.93); }
+    .comment-file-preview { display:flex;align-items:center;gap:8px;padding:8px 16px 0;flex-shrink:0; }
+    .comment-file-chip { display:flex;align-items:center;gap:8px;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:7px 10px;max-width:100%;overflow:hidden;flex:1; }
+    .comment-file-chip-name { font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1; }
+    .comment-file-chip-remove { background:none;border:none;cursor:pointer;padding:0;font-size:14px;color:var(--text-muted);line-height:1;flex-shrink:0; }
+    .st-comment-file-card { margin-top:6px;border-radius:12px;overflow:hidden;border:1.5px solid var(--border);background:var(--bg); }
+    .st-comment-file-card img { width:100%;max-height:200px;object-fit:cover;display:block; }
+    .st-comment-file-meta { display:flex;gap:8px;padding:8px 10px; }
+    .st-comment-file-meta a { flex:1;text-align:center;padding:7px 4px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none; }
+    .st-comment-file-meta a.view { background:var(--green);color:#fff; }
+    .st-comment-file-meta a.dl { background:var(--green-light);color:var(--green-dark); }
 
     /* ══════════ DEAL BANNER (Chat screen) ══════════ */
     .deal-banner {
@@ -3367,7 +3401,7 @@
         <div class="section-title">Quick Actions</div>
       </div>
       <div class="quick-actions">
-        <button class="qa-item" onclick="navTo('create')">
+        <button class="qa-item" onclick="goToMyDeals()">
           <div class="qa-icon green">
             <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
           </div>
@@ -3402,6 +3436,12 @@
             <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </div>
           <span class="qa-label">Explore</span>
+        </button>
+        <button class="qa-item" onclick="goToSkillTestDeals()">
+          <div class="qa-icon purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <span class="qa-label">Skill Test</span>
         </button>
       </div>
 
@@ -3461,6 +3501,10 @@
           <svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Freelancer
         </button>
+        <button class="tab-btn" onclick="setDealsTab(this, 'skilltest')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Skill Test
+        </button>
       </div>
 
       <!-- My Deals controls (search + filter) -->
@@ -3501,6 +3545,15 @@
         <span id="deals-page-label" style="padding:6px 10px;font-size:12px;color:var(--text-muted);align-self:center;"></span>
         <button id="deals-page-next" onclick="dealsPageChange(1)" style="padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;">Next ›</button>
       </div>
+
+      <!-- Skill Test controls (Skill Test tab) -->
+      <div id="deals-skilltest-controls" style="display:none;">
+        <button class="skilltest-add-btn" id="skilltest-add-btn" onclick="openSkillTestModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          Add Skill Test
+        </button>
+      </div>
+      <div id="deals-skilltest-list" style="display:none;"></div>
 
     </div>
   </div>
@@ -3818,7 +3871,7 @@
       <!-- Populated by JS based on user role -->
     </div>
     <div class="chat-messages-wrap" id="chat-messages-wrap">
-      <div class="chat-empty">Start a conversation!</div>
+      <div class="chat-empty" id="chat-blank-placeholder"></div>
     </div>
     <!-- Pending file attachment preview (shows above input row when a file is staged) -->
     <div id="chat-attach-preview" style="display:none;padding:8px 18px 0;background:var(--bg-card);">
@@ -3866,9 +3919,9 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
         <!-- divider -->
-        <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+        <div id="upload-work-divider" style="height:1px;background:var(--border);margin:0 16px;"></div>
         <!-- Upload Work -->
-        <button onclick="closeUploadSheet();document.getElementById('chat-file-input').click();"
+        <button id="upload-work-btn" onclick="closeUploadSheet();document.getElementById('chat-file-input').click();"
           style="width:100%;display:flex;align-items:center;gap:14px;padding:15px 16px;background:var(--bg);border:none;cursor:pointer;text-align:left;">
           <div style="width:40px;height:40px;border-radius:10px;background:rgba(99,102,241,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;">📋</div>
           <div style="flex:1;">
@@ -3882,6 +3935,113 @@
       <div style="margin:12px 16px 20px;">
         <button onclick="closeUploadSheet()"
           style="width:100%;padding:15px;border-radius:14px;border:none;background:var(--bg);color:var(--text);font-size:15px;font-weight:700;cursor:pointer;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ SKILL TEST MODAL ════════ -->
+  <div id="skilltest-modal-overlay" onclick="if(event.target===this)closeSkillTestModal()"
+    style="display:none;position:fixed;inset:0;z-index:9100;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;padding:24px;box-sizing:border-box;">
+    <div onclick="event.stopPropagation()" style="background:var(--card);border-radius:20px;padding:24px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.22);animation:modal-pop 0.22s cubic-bezier(.34,1.56,.64,1) both;box-sizing:border-box;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <div style="font-size:18px;font-weight:800;color:var(--text);">&#128221; Add Skill Test</div>
+        <button onclick="closeSkillTestModal()" style="background:var(--bg);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;color:var(--text-muted);display:flex;align-items:center;justify-content:center;">&#10005;</button>
+      </div>
+      <div class="form-grp">
+        <label class="form-lbl">Title</label>
+        <input type="text" id="skilltest-title-input" class="form-input" placeholder="e.g. JavaScript Basics Test" maxlength="100" />
+      </div>
+      <div class="form-grp">
+        <label class="form-lbl">Description</label>
+        <textarea id="skilltest-desc-input" class="form-ta" placeholder="Describe what the skill test involves…" style="min-height:100px;"></textarea>
+      </div>
+      <button onclick="submitSkillTest()" class="btn-primary" style="margin-top:4px;">Post Skill Test</button>
+    </div>
+  </div>
+
+  <!-- ════════ SKILL TEST COMMENT SHEET ════════ -->
+  <div class="comment-overlay" id="skilltest-comment-overlay" onclick="if(event.target===this)closeSkillTestComments()">
+    <div class="comment-sheet">
+      <div class="comment-sheet-handle"></div>
+      <div class="comment-sheet-header">
+        <div class="comment-sheet-title">&#128172; Comments</div>
+        <button class="comment-sheet-close" onclick="closeSkillTestComments()">&#10005;</button>
+      </div>
+      <div class="comment-list" id="skilltest-comment-list">
+        <div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">Loading…</div>
+      </div>
+      <!-- file preview chip -->
+      <div class="comment-file-preview" id="skilltest-file-preview" style="display:none;">
+        <div class="comment-file-chip">
+          <span style="font-size:16px;">📎</span>
+          <span class="comment-file-chip-name" id="skilltest-file-chip-name">file</span>
+          <button class="comment-file-chip-remove" onclick="clearSTCommentFile()">✕</button>
+        </div>
+      </div>
+      <div class="comment-input-bar">
+        <!-- hidden file input -->
+        <input type="file" id="skilltest-comment-file-input" style="display:none;" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" onchange="stCommentFileSelected(this)" />
+        <!-- paperclip button -->
+        <button class="comment-attach-btn" onclick="document.getElementById('skilltest-comment-file-input').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        </button>
+        <input type="text" class="comment-input" id="skilltest-comment-input" placeholder="Write a comment…" onkeydown="if(event.key==='Enter')sendSkillTestComment()" />
+        <button class="comment-send-btn" onclick="sendSkillTestComment()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ SKILL TEST REPORT OPTIONS SHEET ════════ -->
+  <div id="st-report-options-overlay" onclick="if(event.target===this)closeSTReportOptions()"
+    style="display:none;position:fixed;inset:0;z-index:9200;background:rgba(0,0,0,0.45);align-items:flex-end;justify-content:center;">
+    <div onclick="event.stopPropagation()" style="background:var(--card);border-radius:20px 20px 0 0;padding:20px 16px 32px;width:100%;max-width:480px;box-sizing:border-box;">
+      <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 18px;"></div>
+      <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:16px;padding:0 4px;">🚩 Report Options</div>
+      <button onclick="openSTFileReport()" style="width:100%;display:flex;align-items:center;gap:14px;padding:14px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:14px;cursor:pointer;margin-bottom:10px;text-align:left;">
+        <div style="width:40px;height:40px;border-radius:10px;background:rgba(239,68,68,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;">📝</div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);">File a Report</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">State your reason and submit a report</div>
+        </div>
+      </button>
+      <button onclick="openSTViewReports()" style="width:100%;display:flex;align-items:center;gap:14px;padding:14px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:14px;cursor:pointer;text-align:left;">
+        <div style="width:40px;height:40px;border-radius:10px;background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;">👁</div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);">View Reports</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">See reasons others have reported this post</div>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- ════════ SKILL TEST FILE REPORT MODAL ════════ -->
+  <div id="st-file-report-overlay" onclick="if(event.target===this)closeSTFileReport()"
+    style="display:none;position:fixed;inset:0;z-index:9300;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;padding:24px;box-sizing:border-box;">
+    <div onclick="event.stopPropagation()" style="background:var(--card);border-radius:20px;padding:24px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.22);animation:modal-pop 0.22s cubic-bezier(.34,1.56,.64,1) both;box-sizing:border-box;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <div style="font-size:17px;font-weight:800;color:var(--text);">🚩 File a Report</div>
+        <button onclick="closeSTFileReport()" style="background:var(--bg);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;color:var(--text-muted);display:flex;align-items:center;justify-content:center;">✕</button>
+      </div>
+      <div class="form-grp">
+        <label class="form-lbl">Reason for reporting</label>
+        <textarea id="st-report-reason-input" class="form-ta" placeholder="Describe why you are reporting this post…" style="min-height:90px;"></textarea>
+      </div>
+      <button onclick="submitSTReport()" class="btn-primary" style="margin-top:4px;background:#ef4444;">Submit Report</button>
+    </div>
+  </div>
+
+  <!-- ════════ SKILL TEST VIEW REPORTS SHEET ════════ -->
+  <div class="comment-overlay" id="st-view-reports-overlay" onclick="if(event.target===this)closeSTViewReports()">
+    <div class="comment-sheet">
+      <div class="comment-sheet-handle"></div>
+      <div class="comment-sheet-header">
+        <div class="comment-sheet-title">🚩 Reports</div>
+        <button class="comment-sheet-close" onclick="closeSTViewReports()">✕</button>
+      </div>
+      <div class="comment-list" id="st-view-reports-list">
+        <div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">Loading…</div>
       </div>
     </div>
   </div>
@@ -9033,6 +9193,7 @@
       await loadUsersByRole(dealsTabFilter);
       return;
     }
+    if (dealsTabFilter === 'skilltest') { loadSkillTests(); return; }
     dealsCurrentPage = 0;
     const listEl = document.getElementById('deals-list');
     listEl.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px;">Loading…</div>';
@@ -9104,6 +9265,7 @@
       renderRoleUsers();
       return;
     }
+    if (dealsTabFilter === 'skilltest') return;
 
     const listEl  = document.getElementById('deals-list');
     const search  = (document.getElementById('deals-search')||{}).value || '';
@@ -9345,18 +9507,20 @@
     const listEl = document.getElementById('deals-list');
     listEl.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px;">Loading…</div>';
     try {
+      // Always fetch a broad set and filter client-side so role case differences
+      // (e.g. "Freelancer" vs "freelancer") never silently produce 0 results
       let snap;
       try {
-        snap = await db.collection('users').where('role', 'in', [roleFilter, 'both']).limit(50).get();
+        snap = await db.collection('users').limit(100).get();
       } catch(e) {
         snap = await db.collection('users').limit(80).get();
       }
       roleUsersCache = [];
       snap.forEach(doc => {
         const u = doc.data();
-        if (u.uid !== currentUser.uid) {
+        if (!currentUser || u.uid !== currentUser.uid) {
           const r = (u.role || '').toLowerCase();
-          if (r === roleFilter || r === 'both' || snap.query === undefined) roleUsersCache.push(u);
+          if (r === roleFilter || r === 'both') roleUsersCache.push(u);
         }
       });
       // For freelancer tab: load reviews asynchronously
@@ -13325,6 +13489,8 @@
 
       // ── System message ──
       if (m.senderUid === '__system__' || m.type === 'system') {
+        // Hide review notifications in personal (non-deal) chats
+        if (!activeChatDealId && m.text && m.text.indexOf('sent a review') >= 0) return;
         let timeStr2 = '';
         if (m.timestamp) {
           try { const d2 = m.timestamp.toDate ? m.timestamp.toDate() : new Date(m.timestamp); if (!isNaN(d2)) timeStr2 = formatChatTime(d2); } catch(e) {}
@@ -13956,32 +14122,51 @@
     btn.classList.add('active');
     dealsTabFilter = tab;
 
-    const mydealsControls  = document.getElementById('deals-mydeals-controls');
-    const roleControls     = document.getElementById('deals-role-controls');
-    const flFilterRow      = document.getElementById('freelancer-filter-row');
-    const flAdvBtn         = document.getElementById('fl-adv-btn');
+    const mydealsControls   = document.getElementById('deals-mydeals-controls');
+    const roleControls      = document.getElementById('deals-role-controls');
+    const flFilterRow       = document.getElementById('freelancer-filter-row');
+    const flAdvBtn          = document.getElementById('fl-adv-btn');
+    const skilltestControls = document.getElementById('deals-skilltest-controls');
+    const skilltestList     = document.getElementById('deals-skilltest-list');
+    const dealsList         = document.getElementById('deals-list');
+    const dealsPag          = document.getElementById('deals-pagination');
+
+    // Reset all panels
+    if (mydealsControls)   mydealsControls.style.display   = 'none';
+    if (roleControls)      roleControls.style.display      = 'none';
+    if (skilltestControls) skilltestControls.style.display = 'none';
+    if (skilltestList)     skilltestList.style.display     = 'none';
+    if (flFilterRow)       flFilterRow.style.display       = 'none';
+    if (flAdvBtn)          flAdvBtn.classList.remove('visible');
 
     if (tab === 'mydeals') {
-      mydealsControls.style.display = 'block';
-      roleControls.style.display    = 'none';
-      if (flFilterRow) flFilterRow.style.display = 'none';
-      if (flAdvBtn) flAdvBtn.classList.remove('visible');
+      if (mydealsControls) mydealsControls.style.display = 'block';
+      if (dealsList) dealsList.style.display = 'block';
+      if (dealsPag)  dealsPag.style.display  = 'none';
       dealsCurrentPage = 0;
       loadDeals();
+    } else if (tab === 'skilltest') {
+      if (dealsList) dealsList.style.display = 'none';
+      if (dealsPag)  dealsPag.style.display  = 'none';
+      if (skilltestControls) skilltestControls.style.display = 'block';
+      if (skilltestList)     skilltestList.style.display     = 'block';
+      const stAddBtn = document.getElementById('skilltest-add-btn');
+      if (stAddBtn) {
+        const role = (currentUserDoc && currentUserDoc.role) ? currentUserDoc.role.toLowerCase() : '';
+        stAddBtn.style.display = (role === 'client' || role === 'both') ? 'flex' : 'none';
+      }
+      loadSkillTests();
     } else {
-      mydealsControls.style.display = 'none';
-      roleControls.style.display    = 'block';
-      // Show filter pills + in-searchbar filter button only on freelancer tab
+      if (roleControls) roleControls.style.display = 'block';
+      if (dealsList) dealsList.style.display = 'block';
       if (flFilterRow) flFilterRow.style.display = tab === 'freelancer' ? 'flex' : 'none';
       if (flAdvBtn) flAdvBtn.classList.toggle('visible', tab === 'freelancer');
-      // Reset freelancer sort filter and search
       freelancerSortFilter = 'all';
       flAdvFilter = { skill: '', location: '', minGigs: 0, minRating: 0, maxRate: 0 };
       flHasAdvFilter = false;
       if (flFilterRow) flFilterRow.querySelectorAll('.filter-pill').forEach((p,i) => p.classList.toggle('active', i===0));
       const advBtn2 = document.getElementById('fl-adv-btn');
       if (advBtn2) advBtn2.classList.remove('has-filter');
-      // (visibility handled above)
       const rsi = document.getElementById('deals-role-search');
       if (rsi) rsi.value = '';
       loadUsersByRole(tab);
@@ -16537,7 +16722,15 @@
   // ── Approve work delivery ──
   function openUploadSheet() {
     var el = document.getElementById('upload-sheet-overlay');
-    if (el) { el.style.display = 'flex'; }
+    if (el) {
+      // Hide "Upload Work" for personal (non-deal) chats
+      const isDeal = !!activeChatDealId;
+      const uploadWorkBtn = document.getElementById('upload-work-btn');
+      const uploadWorkDiv = document.getElementById('upload-work-divider');
+      if (uploadWorkBtn) uploadWorkBtn.style.display = isDeal ? 'flex' : 'none';
+      if (uploadWorkDiv) uploadWorkDiv.style.display = isDeal ? 'block' : 'none';
+      el.style.display = 'flex';
+    }
   }
   function closeUploadSheet() {
     var el = document.getElementById('upload-sheet-overlay');
@@ -19812,6 +20005,370 @@
     }
     return hash;
   }
+
+  // ══════════════════════════════════════════════════════════════
+  // SKILL TEST — Firestore collection: "skillTests"
+  // ══════════════════════════════════════════════════════════════
+  let _activeSkillTestId = null;
+  let _skillTestsUnsub   = null;
+
+  function goToSkillTestDeals() {
+    navTo('deals');
+    setTimeout(function() {
+      var btns = document.querySelectorAll('#s-deals .tab-switcher .tab-btn');
+      var stBtn = null;
+      btns.forEach(function(b) { if (b.textContent.trim().indexOf('Skill Test') >= 0) stBtn = b; });
+      if (stBtn) setDealsTab(stBtn, 'skilltest');
+    }, 120);
+  }
+
+  function openSkillTestModal() {
+    if (!currentUser || !currentUserDoc) { showToast('❌ You must be logged in'); return; }
+    var role = (currentUserDoc.role || '').toLowerCase();
+    if (role !== 'client' && role !== 'both') { showToast('❌ Only clients can create Skill Tests'); return; }
+    var ti = document.getElementById('skilltest-title-input');
+    var di = document.getElementById('skilltest-desc-input');
+    if (ti) ti.value = '';
+    if (di) di.value = '';
+    var overlay = document.getElementById('skilltest-modal-overlay');
+    if (overlay) overlay.style.display = 'flex';
+  }
+
+  function closeSkillTestModal() {
+    var overlay = document.getElementById('skilltest-modal-overlay');
+    if (overlay) overlay.style.display = 'none';
+  }
+
+  async function submitSkillTest() {
+    if (!currentUser || !currentUserDoc) { showToast('❌ Not logged in'); return; }
+    var title = ((document.getElementById('skilltest-title-input') || {}).value || '').trim();
+    var desc  = ((document.getElementById('skilltest-desc-input')  || {}).value || '').trim();
+    if (!title) { showToast('❌ Please enter a title'); return; }
+    if (!desc)  { showToast('❌ Please enter a description'); return; }
+    try {
+      await db.collection('skillTests').add({
+        title, description: desc,
+        createdBy: currentUser.uid,
+        createdByUsername: currentUserDoc.username || '',
+        createdByDisplay: currentUserDoc.displayName || currentUserDoc.username || '',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        likes: [], comments: 0, reports: [], completed: false
+      });
+      closeSkillTestModal();
+      showToast('✅ Skill Test posted!');
+    } catch(e) { showToast('❌ ' + (e.message || 'Failed to post')); }
+  }
+
+  function loadSkillTests() {
+    var listEl = document.getElementById('deals-skilltest-list');
+    if (!listEl) return;
+    listEl.innerHTML = '<div style="text-align:center;padding:48px 0;color:var(--text-muted);font-size:13px;">Loading…</div>';
+    if (_skillTestsUnsub) { try { _skillTestsUnsub(); } catch(e){} _skillTestsUnsub = null; }
+    // Use a simple .get() first for immediate rendering, then set up live listener
+    db.collection('skillTests').orderBy('createdAt','desc').limit(50).get()
+      .then(function(snap) { _renderSkillTestsFromSnap(snap); })
+      .catch(function() {
+        // orderBy failed (missing index or rules) — fall back to unsorted fetch
+        db.collection('skillTests').limit(50).get()
+          .then(function(snap2) { _renderSkillTestsFromSnap(snap2); })
+          .catch(function(err) {
+            var le = document.getElementById('deals-skilltest-list');
+            if (le) le.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red);font-size:13px;">⚠️ Could not load Skill Tests.<br><span style="font-size:11px;opacity:.7;">' + ((err && err.message) || '') + '</span></div>';
+          });
+      });
+    // Also keep a live listener so new posts appear without refresh
+    try {
+      _skillTestsUnsub = db.collection('skillTests').orderBy('createdAt','desc').limit(50)
+        .onSnapshot(function(snap) { _renderSkillTestsFromSnap(snap); }, function() {});
+    } catch(e) {}
+  }
+
+  function _renderSkillTestsFromSnap(snap) {
+    var listEl = document.getElementById('deals-skilltest-list');
+    if (!listEl) return;
+    if (!snap || snap.empty) {
+      listEl.innerHTML = '<div style="text-align:center;padding:48px 20px;color:var(--text-muted);font-size:14px;">No skill tests yet.<br><br>Be the first to post one! 🎯</div>';
+      return;
+    }
+    var html = '';
+    snap.forEach(function(doc) {
+      var d       = doc.data();
+      var likes   = Array.isArray(d.likes)   ? d.likes   : [];
+      var reports = Array.isArray(d.reports) ? d.reports : [];
+      var liked    = currentUser ? likes.indexOf(currentUser.uid) >= 0 : false;
+      var reported = currentUser ? reports.indexOf(currentUser.uid) >= 0 : false;
+      var isOwner  = currentUser ? d.createdBy === currentUser.uid : false;
+      var cat      = d.createdAt ? (d.createdAt.toDate ? d.createdAt.toDate() : new Date(d.createdAt)) : new Date();
+      var avColor  = getAvatarColor(d.createdBy || doc.id);
+      var initials = (d.createdByDisplay || '?').replace('@','').substring(0,2).toUpperCase();
+      html += '<div class="skilltest-card">'
+        + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
+          + '<div style="width:36px;height:36px;border-radius:10px;background:' + avColor + ';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;">' + initials + '</div>'
+          + '<div style="flex:1;min-width:0;">'
+            + '<div style="font-size:13px;font-weight:700;color:var(--text);">' + _esc(d.createdByDisplay || 'Unknown') + '</div>'
+            + '<div style="font-size:11px;color:var(--text-muted);">' + formatMsgTime(cat) + '</div>'
+          + '</div>'
+          + (d.completed ? '<span style="padding:3px 10px;border-radius:100px;background:var(--green-light);color:var(--green-dark);font-size:11px;font-weight:700;">&#10003; Completed</span>' : '')
+        + '</div>'
+        + '<div class="skilltest-card-title">' + _esc(d.title || '') + '</div>'
+        + '<div class="skilltest-card-desc">' + _esc(d.description || '') + '</div>'
+        + '<div class="skilltest-card-footer">'
+          + '<button class="skilltest-action-btn' + (liked ? ' liked' : '') + '" onclick="likeSkillTest(\'' + doc.id + '\')">'
+            + '<svg viewBox="0 0 24 24" fill="' + (liked ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+            + ' ' + likes.length + '</button>'
+          + '<button class="skilltest-action-btn" onclick="openSkillTestComments(\'' + doc.id + '\')">'
+            + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
+            + ' ' + (d.comments || 0) + '</button>'
+          + '<button class="skilltest-action-btn' + (reported ? ' reported' : '') + '" onclick="openSTReportOptions(\'' + doc.id + '\')">'
+            + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>'
+            + ' ' + reports.length + '</button>'
+          + (isOwner && !d.completed ? '<button class="skilltest-complete-btn" onclick="markSkillTestComplete(\'' + doc.id + '\')">Mark Complete</button>' : '')
+        + '</div></div>';
+    });
+    listEl.innerHTML = html;
+  }
+
+  async function likeSkillTest(postId) {
+    if (!currentUser) { showToast('❌ Log in to like'); return; }
+    try {
+      var ref  = db.collection('skillTests').doc(postId);
+      var snap = await ref.get();
+      if (!snap.exists) return;
+      var likes = snap.data().likes || [];
+      if (likes.indexOf(currentUser.uid) >= 0)
+        await ref.update({ likes: firebase.firestore.FieldValue.arrayRemove(currentUser.uid) });
+      else
+        await ref.update({ likes: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) });
+    } catch(e) { showToast('❌ ' + (e.message || 'Failed')); }
+  }
+
+  var _stReportPostId = null;
+
+  function openSTReportOptions(postId) {
+    if (!currentUser) { showToast('❌ Log in first'); return; }
+    _stReportPostId = postId;
+    var ov = document.getElementById('st-report-options-overlay');
+    if (ov) ov.style.display = 'flex';
+  }
+
+  function closeSTReportOptions() {
+    var ov = document.getElementById('st-report-options-overlay');
+    if (ov) ov.style.display = 'none';
+  }
+
+  function openSTFileReport() {
+    closeSTReportOptions();
+    var inp = document.getElementById('st-report-reason-input');
+    if (inp) inp.value = '';
+    var ov = document.getElementById('st-file-report-overlay');
+    if (ov) ov.style.display = 'flex';
+  }
+
+  function closeSTFileReport() {
+    var ov = document.getElementById('st-file-report-overlay');
+    if (ov) ov.style.display = 'none';
+  }
+
+  async function submitSTReport() {
+    if (!currentUser || !_stReportPostId) return;
+    var reason = ((document.getElementById('st-report-reason-input') || {}).value || '').trim();
+    if (!reason) { showToast('❌ Please enter a reason'); return; }
+    try {
+      var ref = db.collection('skillTests').doc(_stReportPostId);
+      var snap = await ref.get();
+      if (!snap.exists) { showToast('❌ Post not found'); return; }
+      var existing = snap.data().reports || [];
+      if (existing.indexOf(currentUser.uid) >= 0) { showToast('⚠️ You already reported this post'); closeSTFileReport(); return; }
+      // Save detailed report to subcollection
+      await ref.collection('reportDetails').add({
+        uid: currentUser.uid,
+        displayName: currentUserDoc.displayName || currentUserDoc.username || '',
+        reason: reason,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      // Increment report count on the post
+      await ref.update({ reports: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) });
+      closeSTFileReport();
+      showToast('🚩 Report submitted. Thank you!');
+    } catch(e) { showToast('❌ ' + (e.message || 'Failed to submit')); }
+  }
+
+  async function openSTViewReports() {
+    closeSTReportOptions();
+    var overlay = document.getElementById('st-view-reports-overlay');
+    var listEl  = document.getElementById('st-view-reports-list');
+    if (!overlay || !listEl || !_stReportPostId) return;
+    listEl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Loading…</div>';
+    overlay.classList.add('show');
+    try {
+      var snap = await db.collection('skillTests').doc(_stReportPostId).collection('reportDetails').orderBy('createdAt','asc').get();
+      if (snap.empty) {
+        listEl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">No detailed reports yet.</div>';
+        return;
+      }
+      var html = '';
+      snap.forEach(function(doc) {
+        var r = doc.data();
+        var t = r.createdAt ? (r.createdAt.toDate ? r.createdAt.toDate() : new Date(r.createdAt)) : new Date();
+        var initials = (r.displayName || '?').replace('@','').substring(0,2).toUpperCase();
+        html += '<div class="comment-item">'
+          + '<div class="comment-avatar" style="background:' + getAvatarColor(r.uid || doc.id) + ';">' + initials + '</div>'
+          + '<div class="comment-body">'
+            + '<div class="comment-name">' + _esc(r.displayName || 'Unknown') + '</div>'
+            + '<div class="comment-text">' + _esc(r.reason || '') + '</div>'
+            + '<div class="comment-time">' + formatMsgTime(t) + '</div>'
+          + '</div></div>';
+      });
+      listEl.innerHTML = html;
+    } catch(e) {
+      listEl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--red);font-size:13px;">Failed to load reports.</div>';
+    }
+  }
+
+  function closeSTViewReports() {
+    var overlay = document.getElementById('st-view-reports-overlay');
+    if (overlay) overlay.classList.remove('show');
+  }
+
+  async function markSkillTestComplete(postId) {
+    if (!currentUser) return;
+    try {
+      await db.collection('skillTests').doc(postId).update({ completed: true });
+      showToast('✅ Marked as complete!');
+    } catch(e) { showToast('❌ ' + (e.message || 'Failed')); }
+  }
+
+  async function openSkillTestComments(postId) {
+    _activeSkillTestId = postId;
+    var overlay = document.getElementById('skilltest-comment-overlay');
+    var list    = document.getElementById('skilltest-comment-list');
+    if (!overlay || !list) return;
+    list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Loading…</div>';
+    overlay.classList.add('show');
+    try {
+      var snap = await db.collection('skillTests').doc(postId).collection('comments').orderBy('createdAt','asc').get();
+      if (snap.empty) {
+        list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">No comments yet. Be the first!</div>';
+        return;
+      }
+      var html = '';
+      snap.forEach(function(doc) {
+        var c  = doc.data();
+        var t  = c.createdAt ? (c.createdAt.toDate ? c.createdAt.toDate() : new Date(c.createdAt)) : new Date();
+        var ci = (c.displayName || '?').replace('@','').substring(0,2).toUpperCase();
+        // Build file attachment block if present
+        var fileHtml = '';
+        if (c.fileUrl) {
+          var isImg = c.fileType && c.fileType.startsWith('image/');
+          var fname = _esc(c.fileName || 'file');
+          var fview = _esc(c.fileUrl);
+          var fdl   = _esc(c.downloadUrl || c.fileUrl);
+          if (isImg) {
+            fileHtml = '<div class="st-comment-file-card">'
+              + '<img src="' + fview + '" alt="' + fname + '" onerror="this.style.display=\'none\'" />'
+              + '<div class="st-comment-file-meta">'
+                + '<a href="' + fview + '" target="_blank" rel="noopener" class="view">👁 View</a>'
+                + '<a href="' + fdl  + '" target="_blank" rel="noopener" class="dl">⬇ Download</a>'
+              + '</div></div>';
+          } else {
+            fileHtml = '<div class="st-comment-file-card">'
+              + '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;">'
+                + '<span style="font-size:26px;">📄</span>'
+                + '<span style="font-size:12px;font-weight:600;color:var(--text);word-break:break-all;">' + fname + '</span>'
+              + '</div>'
+              + '<div class="st-comment-file-meta">'
+                + '<a href="' + fview + '" target="_blank" rel="noopener" class="view">👁 View</a>'
+                + '<a href="' + fdl  + '" target="_blank" rel="noopener" class="dl">⬇ Download</a>'
+              + '</div></div>';
+          }
+        }
+        html += '<div class="comment-item">'
+          + '<div class="comment-avatar" style="background:' + getAvatarColor(c.uid || doc.id) + ';">' + ci + '</div>'
+          + '<div class="comment-body">'
+            + '<div class="comment-name">' + _esc(c.displayName || 'Unknown') + '</div>'
+            + (c.text ? '<div class="comment-text">' + _esc(c.text) + '</div>' : '')
+            + fileHtml
+            + '<div class="comment-time">' + formatMsgTime(t) + '</div>'
+          + '</div></div>';
+      });
+      list.innerHTML = html;
+    } catch(e) {
+      list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--red);font-size:13px;">Failed to load comments.</div>';
+    }
+  }
+
+  function closeSkillTestComments() {
+    var overlay = document.getElementById('skilltest-comment-overlay');
+    if (overlay) overlay.classList.remove('show');
+    _activeSkillTestId = null;
+  }
+
+  var _stCommentPendingFile = null;
+
+  function stCommentFileSelected(input) {
+    var file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) { showToast('❌ File too large (max 20 MB)'); return; }
+    _stCommentPendingFile = file;
+    var nameEl    = document.getElementById('skilltest-file-chip-name');
+    var previewEl = document.getElementById('skilltest-file-preview');
+    if (nameEl)    nameEl.textContent = file.name;
+    if (previewEl) previewEl.style.display = 'flex';
+  }
+
+  function clearSTCommentFile() {
+    _stCommentPendingFile = null;
+    var inp       = document.getElementById('skilltest-comment-file-input');
+    var previewEl = document.getElementById('skilltest-file-preview');
+    if (inp)       inp.value = '';
+    if (previewEl) previewEl.style.display = 'none';
+  }
+
+  async function sendSkillTestComment() {
+    if (!currentUser || !currentUserDoc || !_activeSkillTestId) return;
+    var inp  = document.getElementById('skilltest-comment-input');
+    var text = ((inp && inp.value) || '').trim();
+    var file = _stCommentPendingFile;
+    // Must have text or a file
+    if (!text && !file) return;
+
+    // Clear input immediately for responsiveness
+    if (inp) inp.value = '';
+
+    var commentData = {
+      uid: currentUser.uid,
+      displayName: currentUserDoc.displayName || currentUserDoc.username || '',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    if (text) commentData.text = text;
+
+    // Upload file if present
+    if (file) {
+      showToast('📤 Uploading file…');
+      try {
+        var gasResult = await _gasUploadFile(file);
+        if (!gasResult) { return; } // error already shown
+        commentData.fileUrl     = gasResult.viewUrl;
+        commentData.downloadUrl = gasResult.downloadUrl || gasResult.viewUrl;
+        commentData.fileName    = file.name;
+        commentData.fileSize    = file.size;
+        commentData.fileType    = file.type || '';
+      } catch(e) {
+        showToast('❌ Upload failed: ' + (e.message || 'Error'));
+        return;
+      }
+      clearSTCommentFile();
+    }
+
+    try {
+      var postRef = db.collection('skillTests').doc(_activeSkillTestId);
+      await postRef.collection('comments').add(commentData);
+      await postRef.update({ comments: firebase.firestore.FieldValue.increment(1) });
+      await openSkillTestComments(_activeSkillTestId);
+    } catch(e) { showToast('❌ ' + (e.message || 'Failed to send')); }
+  }
+
   </script>
 
 </body>
